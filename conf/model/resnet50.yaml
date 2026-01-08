@@ -1,0 +1,6 @@
+# Конфигурация модели ResNet-50
+backbone_name: resnet50
+num_classes: 2
+dropout: 0.5
+pretrained: true
+
