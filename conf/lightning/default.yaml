@@ -1,0 +1,9 @@
+# Конфигурация PyTorch Lightning
+accelerator: auto  # auto, gpu, cpu
+devices: 1
+precision: 32  # 16 или 32
+log_every_n_steps: 10
+val_check_interval: 0.5  # Проверка валидации дважды за эпоху
+enable_progress_bar: true
+enable_model_summary: true
+

@@ -1,7 +1,7 @@
 [project]
 name = "ai-images-classifier"
 version = "0.1.0"
-description = "AI images classifier"
+description = "AI Images Classifier with PyTorch Lightning and Hydra"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = []
