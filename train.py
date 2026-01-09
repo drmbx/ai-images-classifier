@@ -9,8 +9,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Learning
 import torch
 import random
 import numpy as np
-from lightning_module import AIImageClassifierModule
-from data_module import AIImageDataModule
+from source.modules.lightning_module import AIImageClassifierModule
+from source.modules.data_module import AIImageDataModule
 
 
 def set_seed(seed: int):

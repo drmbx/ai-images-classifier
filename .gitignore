@@ -30,6 +30,8 @@ lightning_logs/
 .wandb/
 
 # Data
+logs/
+outputs/
 data/
 *.jpg
 *.jpeg

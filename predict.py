@@ -5,8 +5,8 @@ import argparse
 import torch
 from PIL import Image
 from torchvision import transforms
-from model import AIImageClassifier
-from lightning_module import AIImageClassifierModule
+from source.model.model import AIImageClassifier
+from source.modules.lightning_module import AIImageClassifierModule
 
 
 def load_image(image_path, image_size=224):
