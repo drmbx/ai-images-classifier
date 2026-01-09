@@ -6,10 +6,10 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
-import pytorch_lightning as pl
+import lightning as L
 
 
-class AIImageDataModule(pl.LightningDataModule):
+class AIImageDataModule(L.LightningDataModule):
     """
     DataModule для загрузки и подготовки данных для классификации ИИ-изображений
     """
@@ -189,4 +189,3 @@ class AIImageDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             pin_memory=True
         )
-
