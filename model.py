@@ -94,4 +94,3 @@ class AIImageClassifier(nn.Module):
         with torch.no_grad():
             features = self.backbone(x)
         return features
-

@@ -69,4 +69,3 @@ known-first-party = ["lightning_module", "data_module", "model"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
-

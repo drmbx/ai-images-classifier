@@ -4,7 +4,7 @@
 """
 import hydra
 from omegaconf import DictConfig, OmegaConf
-import pytorch_lightning as pl
+import lightning as L
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
 import torch
 import random
@@ -89,7 +89,7 @@ def main(cfg: DictConfig) -> None:
         logger = hydra.utils.instantiate(logger_config)
     
     # Trainer
-    trainer = pl.Trainer(
+    trainer = L.Trainer(
         max_epochs=cfg.training.max_epochs,
         accelerator=cfg.lightning.accelerator,
         devices=cfg.lightning.devices if cfg.lightning.accelerator != 'cpu' else None,
