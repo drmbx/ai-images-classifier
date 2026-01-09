@@ -6,7 +6,6 @@ import torch
 from PIL import Image
 from torchvision import transforms
 from model import AIImageClassifier
-import pytorch_lightning as pl
 from lightning_module import AIImageClassifierModule
 
 
@@ -97,4 +96,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
