@@ -1,0 +1,2 @@
+dataset_name: "Hemg/AI-Generated-vs-Real-Images-Datasets"
+output_root: "data/raw"

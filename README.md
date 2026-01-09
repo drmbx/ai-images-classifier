@@ -304,7 +304,7 @@ uv pip sync
 **Создание виртуального окружения:**
 ```bash
 uv venv
-source .venv/bin/activate  # Linux/Mac
+src .venv/bin/activate  # Linux/Mac
 .venv\Scripts\activate     # Windows
 ```
 

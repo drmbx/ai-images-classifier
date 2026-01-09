@@ -2,15 +2,20 @@
 Скрипт для обучения модели классификации ИИ-изображений
 С использованием Hydra для конфигурации
 """
-import hydra
-from omegaconf import DictConfig, OmegaConf
-import lightning as L
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
-import torch
+
 import random
+from pathlib import Path
+
+import hydra
+import lightning as L
 import numpy as np
-from source.modules.lightning_module import AIImageClassifierModule
-from source.modules.data_module import AIImageDataModule
+import torch
+from omegaconf import DictConfig, OmegaConf
+
+from src.ai_images_classifier.modules.data_module import AIImageDataModule
+from src.ai_images_classifier.modules.lightning_module import AIImageClassifierModule
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
 def set_seed(seed: int):
@@ -23,23 +28,27 @@ def set_seed(seed: int):
     torch.backends.cudnn.benchmark = False
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(
+    version_base=None,
+    config_path=str(PROJECT_ROOT / "conf/training"),
+    config_name="default",
+)
 def main(cfg: DictConfig) -> None:
     """
     Основная функция обучения
-    
+
     Args:
         cfg: Конфигурация из Hydra
     """
     # Установка seed
-    if hasattr(cfg, 'seed'):
+    if hasattr(cfg, "seed"):
         set_seed(cfg.seed)
         print(f"Seed установлен: {cfg.seed}")
-    
+
     # Вывод конфигурации
     print("Конфигурация эксперимента:")
     print(OmegaConf.to_yaml(cfg))
-    
+
     # Инициализация DataModule
     data_module = AIImageDataModule(
         data_dir=cfg.data.data_dir,
@@ -48,9 +57,9 @@ def main(cfg: DictConfig) -> None:
         image_size=cfg.data.image_size,
         train_split=cfg.data.train_split,
         val_split=cfg.data.val_split,
-        test_split=cfg.data.test_split
+        test_split=cfg.data.test_split,
     )
-    
+
     # Инициализация модели
     model = AIImageClassifierModule(
         backbone_name=cfg.model.backbone_name,
@@ -58,66 +67,68 @@ def main(cfg: DictConfig) -> None:
         dropout=cfg.model.dropout,
         learning_rate=cfg.training.learning_rate,
         weight_decay=cfg.training.weight_decay,
-        pretrained=cfg.model.pretrained
+        pretrained=cfg.model.pretrained,
     )
-    
+
     # Создание callbacks из конфигурации
     callbacks = []
-    
+
     # ModelCheckpoint
-    if 'checkpoint' in cfg.callbacks:
+    if "checkpoint" in cfg.callbacks:
         checkpoint_callback = hydra.utils.instantiate(cfg.callbacks.checkpoint)
         callbacks.append(checkpoint_callback)
-    
+
     # EarlyStopping
-    if 'early_stopping' in cfg.callbacks:
+    if "early_stopping" in cfg.callbacks:
         early_stopping = hydra.utils.instantiate(cfg.callbacks.early_stopping)
         callbacks.append(early_stopping)
-    
+
     # LearningRateMonitor
-    if 'lr_monitor' in cfg.callbacks:
+    if "lr_monitor" in cfg.callbacks:
         lr_monitor = hydra.utils.instantiate(cfg.callbacks.lr_monitor)
         callbacks.append(lr_monitor)
-    
+
     # Создание logger из конфигурации
     logger = None
-    if 'logger' in cfg and cfg.logger is not None:
+    if "logger" in cfg and cfg.logger is not None:
         logger_config = cfg.logger.copy()
         # Заменяем переменные в конфигурации logger
-        if 'name' in logger_config:
+        if "name" in logger_config:
             logger_config.name = cfg.experiment_name
         logger = hydra.utils.instantiate(logger_config)
-    
+
     # Trainer
     trainer = L.Trainer(
         max_epochs=cfg.training.max_epochs,
         accelerator=cfg.lightning.accelerator,
-        devices=cfg.lightning.devices if cfg.lightning.accelerator != 'cpu' else None,
+        devices=cfg.lightning.devices,
         precision=cfg.lightning.precision,
         callbacks=callbacks,
         logger=logger,
         log_every_n_steps=cfg.lightning.log_every_n_steps,
         val_check_interval=cfg.lightning.val_check_interval,
         enable_progress_bar=cfg.lightning.enable_progress_bar,
-        enable_model_summary=cfg.lightning.enable_model_summary
+        enable_model_summary=cfg.lightning.enable_model_summary,
     )
-    
+
     # Обучение
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("Начало обучения")
-    print("="*50 + "\n")
+    print("=" * 50 + "\n")
     trainer.fit(model, data_module)
-    
+
     # Тестирование
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("Запуск тестирования")
-    print("="*50 + "\n")
+    print("=" * 50 + "\n")
     trainer.test(model, data_module)
-    
+
     # Вывод информации о лучшей модели
-    if 'checkpoint' in cfg.callbacks and hasattr(checkpoint_callback, 'best_model_path'):
+    if "checkpoint" in cfg.callbacks and hasattr(
+        checkpoint_callback, "best_model_path"
+    ):
         print(f"\nЛучшая модель сохранена в: {checkpoint_callback.best_model_path}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
