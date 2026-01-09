@@ -1,4 +1,3 @@
-# Основной конфигурационный файл
 defaults:
   - model: efficientnet_b0
   - data: default
@@ -7,8 +6,7 @@ defaults:
   - logger: tensorboard
   - callbacks: default
   - hydra: default
+  - _self_
 
-# Имя эксперимента (можно переопределить через командную строку)
 experiment_name: ai-image-classifier
 seed: 42
-
