@@ -4,9 +4,7 @@ version = "0.1.0"
 description = "AI images classifier"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "dvc>=3.66.1",
-]
+dependencies = []
 
 [dependency-groups]
 dev = [
