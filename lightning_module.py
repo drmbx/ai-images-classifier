@@ -5,11 +5,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchmetrics import Accuracy, Precision, Recall, F1Score
-import pytorch_lightning as pl
+import lightning as L
 from model import AIImageClassifier
 
 
-class AIImageClassifierModule(pl.LightningModule):
+class AIImageClassifierModule(L.LightningModule):
     """
     Lightning модуль для обучения модели классификации ИИ-изображений
     """
@@ -43,26 +43,18 @@ class AIImageClassifierModule(pl.LightningModule):
             pretrained=pretrained
         )
         
-        # Loss функция (для бинарной классификации используем BCEWithLogitsLoss)
-        if num_classes == 2:
-            self.criterion = nn.BCEWithLogitsLoss()
-        else:
-            self.criterion = nn.CrossEntropyLoss()
+        # Loss функция: используем CrossEntropyLoss для всех случаев
+        self.criterion = nn.CrossEntropyLoss()
         
-        # Метрики
-        self.train_accuracy = Accuracy(task="binary" if num_classes == 2 else "multiclass", 
-                                       num_classes=num_classes)
-        self.val_accuracy = Accuracy(task="binary" if num_classes == 2 else "multiclass", 
-                                     num_classes=num_classes)
-        self.test_accuracy = Accuracy(task="binary" if num_classes == 2 else "multiclass", 
-                                      num_classes=num_classes)
+        # Метрики (используем режим multiclass даже для 2 классов,
+        # чтобы работать с целочисленными метками 0/1)
+        self.train_accuracy = Accuracy(task="multiclass", num_classes=num_classes)
+        self.val_accuracy = Accuracy(task="multiclass", num_classes=num_classes)
+        self.test_accuracy = Accuracy(task="multiclass", num_classes=num_classes)
         
-        self.val_precision = Precision(task="binary" if num_classes == 2 else "multiclass", 
-                                       num_classes=num_classes)
-        self.val_recall = Recall(task="binary" if num_classes == 2 else "multiclass", 
-                                 num_classes=num_classes)
-        self.val_f1 = F1Score(task="binary" if num_classes == 2 else "multiclass", 
-                             num_classes=num_classes)
+        self.val_precision = Precision(task="multiclass", num_classes=num_classes)
+        self.val_recall = Recall(task="multiclass", num_classes=num_classes)
+        self.val_f1 = F1Score(task="multiclass", num_classes=num_classes)
         
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
@@ -78,17 +70,9 @@ class AIImageClassifierModule(pl.LightningModule):
         # Forward pass
         logits = self(images)
         
-        # Вычисление loss
-        if self.hparams.num_classes == 2:
-            # Для бинарной классификации преобразуем labels в float
-            labels = labels.float().unsqueeze(1)
-            loss = self.criterion(logits, labels)
-            preds = torch.sigmoid(logits) > 0.5
-            preds = preds.long().squeeze(1)
-            labels = labels.squeeze(1).long()
-        else:
-            loss = self.criterion(logits, labels)
-            preds = torch.argmax(logits, dim=1)
+        # Вычисление loss и предсказаний (общий случай multiclass, в том числе 2 класса)
+        loss = self.criterion(logits, labels)
+        preds = torch.argmax(logits, dim=1)
         
         # Обновление метрик
         acc = self.train_accuracy(preds, labels)
@@ -106,15 +90,9 @@ class AIImageClassifierModule(pl.LightningModule):
         # Forward pass
         logits = self(images)
         
-        # Вычисление loss
-        if self.hparams.num_classes == 2:
-            labels_float = labels.float().unsqueeze(1)
-            loss = self.criterion(logits, labels_float)
-            preds = torch.sigmoid(logits) > 0.5
-            preds = preds.long().squeeze(1)
-        else:
-            loss = self.criterion(logits, labels)
-            preds = torch.argmax(logits, dim=1)
+        # Вычисление loss и предсказаний
+        loss = self.criterion(logits, labels)
+        preds = torch.argmax(logits, dim=1)
         
         # Обновление метрик
         self.val_accuracy(preds, labels)
@@ -138,15 +116,9 @@ class AIImageClassifierModule(pl.LightningModule):
         # Forward pass
         logits = self(images)
         
-        # Вычисление loss
-        if self.hparams.num_classes == 2:
-            labels_float = labels.float().unsqueeze(1)
-            loss = self.criterion(logits, labels_float)
-            preds = torch.sigmoid(logits) > 0.5
-            preds = preds.long().squeeze(1)
-        else:
-            loss = self.criterion(logits, labels)
-            preds = torch.argmax(logits, dim=1)
+        # Вычисление loss и предсказаний
+        loss = self.criterion(logits, labels)
+        preds = torch.argmax(logits, dim=1)
         
         # Обновление метрик
         self.test_accuracy(preds, labels)
@@ -168,10 +140,9 @@ class AIImageClassifierModule(pl.LightningModule):
         # Learning rate scheduler
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer,
-            mode='min',
+            mode="min",
             factor=0.5,
             patience=5,
-            verbose=True
         )
         
         return {
@@ -181,4 +152,3 @@ class AIImageClassifierModule(pl.LightningModule):
                 "monitor": "val_loss"
             }
         }
-
