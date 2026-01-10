@@ -4,7 +4,6 @@
 """
 
 import random
-from pathlib import Path
 
 import hydra
 import lightning as L
@@ -14,9 +13,6 @@ from omegaconf import DictConfig, OmegaConf
 
 from src.ai_images_classifier.modules.data_module import AIImageDataModule
 from src.ai_images_classifier.modules.lightning_module import AIImageClassifierModule
-
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-
 
 def set_seed(seed: int):
     """Установка seed для воспроизводимости"""
@@ -30,8 +26,8 @@ def set_seed(seed: int):
 
 @hydra.main(
     version_base=None,
-    config_path=str(PROJECT_ROOT / "conf/training"),
-    config_name="default",
+    config_path="conf",
+    config_name="config",
 )
 def main(cfg: DictConfig) -> None:
     """
