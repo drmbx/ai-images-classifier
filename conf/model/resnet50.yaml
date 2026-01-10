@@ -2,3 +2,4 @@ backbone_name: resnet50
 num_classes: 2
 dropout: 0.5
 pretrained: true
+freeze_backbone: true

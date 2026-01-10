@@ -18,7 +18,9 @@ def ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def split_indices(n: int, train_ratio: float = 0.7, val_ratio: float = 0.15) -> Tuple[list[int], list[int], list[int]]:
+def split_indices(
+    n: int, train_ratio: float = 0.7, val_ratio: float = 0.15
+) -> Tuple[list[int], list[int], list[int]]:
     """Return indices for train/val/test splits."""
     from sklearn.model_selection import train_test_split
 
@@ -27,8 +29,12 @@ def split_indices(n: int, train_ratio: float = 0.7, val_ratio: float = 0.15) -> 
     remaining_ratio = 1.0 - train_ratio
     if remaining_ratio != 0:
         val_size = val_ratio / remaining_ratio
-        train_idx, temp_idx = train_test_split(all_indices, train_size=train_size, shuffle=True, random_state=42)
-        val_idx, test_idx = train_test_split(temp_idx, train_size=val_size, shuffle=True, random_state=42)
+        train_idx, temp_idx = train_test_split(
+            all_indices, train_size=train_size, shuffle=True, random_state=42
+        )
+        val_idx, test_idx = train_test_split(
+            temp_idx, train_size=val_size, shuffle=True, random_state=42
+        )
     else:
         train_idx = all_indices
         val_idx, test_idx = [], []
@@ -47,7 +53,9 @@ def download_data(cfg: DictConfig) -> None:
     ds = load_dataset(dataset_name, split="train")
 
     n = len(ds)
-    print(f"Loaded {n} samples. Creating train/val/test splits ({cfg.train_ratio}/{cfg.val_ratio})...")
+    print(
+        f"Loaded {n} samples. Creating train/val/test splits ({cfg.train_ratio}/{cfg.val_ratio})..."
+    )
     train_idx, val_idx, test_idx = split_indices(n, cfg.train_ratio, cfg.val_ratio)
 
     splits = {
@@ -86,3 +94,7 @@ def download_data(cfg: DictConfig) -> None:
                 print(f"  Saved {i + 1}/{len(indices)} images for split '{split_name}'")
 
     print("Done. Dataset saved under 'data/train|val|test/ai|real'.")
+
+
+if __name__ == "__main__":
+    download_data()

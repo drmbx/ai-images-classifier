@@ -14,6 +14,7 @@ from omegaconf import DictConfig, OmegaConf
 from src.ai_images_classifier.modules.data_module import AIImageDataModule
 from src.ai_images_classifier.modules.lightning_module import AIImageClassifierModule
 
+
 def set_seed(seed: int):
     """Установка seed для воспроизводимости"""
     random.seed(seed)
@@ -45,6 +46,16 @@ def main(cfg: DictConfig) -> None:
     print("Конфигурация эксперимента:")
     print(OmegaConf.to_yaml(cfg))
 
+    # Информация о заморозке
+    if hasattr(cfg.model, "freeze_backbone") and cfg.model.freeze_backbone:
+        print("🧊 Backbone БУДЕТ ЗАМОРОЖЕН на всё время обучения")
+        print("   (обучается только классификатор)")
+    else:
+        print("🔥 Backbone НЕ заморожен")
+        print("   (обучается вся модель)")
+
+    print("=" * 60 + "\n")
+
     # Инициализация DataModule
     data_module = AIImageDataModule(
         data_dir=cfg.data.data_dir,
@@ -57,6 +68,7 @@ def main(cfg: DictConfig) -> None:
     )
 
     # Инициализация модели
+    print("🧠 Инициализация модели...")
     model = AIImageClassifierModule(
         backbone_name=cfg.model.backbone_name,
         num_classes=cfg.model.num_classes,
@@ -64,6 +76,7 @@ def main(cfg: DictConfig) -> None:
         learning_rate=cfg.training.learning_rate,
         weight_decay=cfg.training.weight_decay,
         pretrained=cfg.model.pretrained,
+        freeze_backbone=cfg.model.get("freeze_backbone", False),
     )
 
     # Создание callbacks из конфигурации

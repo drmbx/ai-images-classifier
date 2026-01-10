@@ -21,6 +21,7 @@ class AIImageClassifier(nn.Module):
         num_classes: int = 2,
         dropout: float = 0.5,
         pretrained: bool = True,
+        freeze_backbone: bool = False,  # Новый параметр
     ):
         """
         Args:
@@ -28,11 +29,13 @@ class AIImageClassifier(nn.Module):
             num_classes: Количество классов (2 для бинарной классификации: AI/Real)
             dropout: Dropout вероятность
             pretrained: Использовать ли предобученные веса
+            freeze_backbone: Замораживать ли веса backbone навсегда
         """
         super(AIImageClassifier, self).__init__()
 
         self.backbone_name = backbone_name
         self.num_classes = num_classes
+        self.freeze_backbone = freeze_backbone
 
         # Выбор backbone модели
         if backbone_name == "efficientnet_b0":
@@ -64,6 +67,17 @@ class AIImageClassifier(nn.Module):
             nn.ReLU(inplace=True),
             nn.Dropout(dropout),
             nn.Linear(512, num_classes),
+        )
+
+        if freeze_backbone:
+            self._freeze_backbone()
+
+    def _freeze_backbone(self):
+        """Замораживает все параметры backbone"""
+        for param in self.backbone.parameters():
+            param.requires_grad = False
+        print(
+            f"✅ Backbone '{self.backbone_name}' заморожен (параметры не будут обучаться)"
         )
 
     def forward(self, x):

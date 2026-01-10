@@ -1,0 +1,12 @@
+defaults:
+  - model: efficientnet_b0
+  - data: default
+  - training: fast
+  - lightning: fast
+  - logger: tensorboard
+  - callbacks: default
+  - hydra: default
+  - _self_
+
+experiment_name: fast_training
+seed: 42

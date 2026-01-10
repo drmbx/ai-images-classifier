@@ -22,6 +22,7 @@ class AIImageClassifierModule(L.LightningModule):
         learning_rate: float = 1e-4,
         weight_decay: float = 1e-5,
         pretrained: bool = True,
+        freeze_backbone: bool = False,
     ):
         """
         Args:
@@ -31,6 +32,7 @@ class AIImageClassifierModule(L.LightningModule):
             learning_rate: Скорость обучения
             weight_decay: Weight decay для оптимизатора
             pretrained: Использовать ли предобученные веса
+            freeze_backbone: Замораживать ли веса backbone (навсегда)
         """
         super().__init__()
         self.save_hyperparameters()
@@ -41,6 +43,7 @@ class AIImageClassifierModule(L.LightningModule):
             num_classes=num_classes,
             dropout=dropout,
             pretrained=pretrained,
+            freeze_backbone=freeze_backbone,
         )
 
         # Loss функция: используем CrossEntropyLoss для всех случаев
@@ -80,6 +83,19 @@ class AIImageClassifierModule(L.LightningModule):
         # Логирование
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
         self.log("train_acc", acc, on_step=True, on_epoch=True, prog_bar=True)
+
+        # Логируем статус заморозки только на первом шаге
+        if self.current_epoch == 0 and batch_idx == 0:
+            if self.model.freeze_backbone:
+                self.logger.experiment.add_scalar(
+                    "backbone_status", 0.0, 0
+                )  # 0 = заморожен
+                print("🧊 Backbone заморожен - обучается только классификатор")
+            else:
+                self.logger.experiment.add_scalar(
+                    "backbone_status", 1.0, 0
+                )  # 1 = разморожен
+                print("🔥 Backbone разморожен - обучается вся модель")
 
         return loss
 
@@ -132,9 +148,32 @@ class AIImageClassifierModule(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        """Настройка оптимизатора и scheduler"""
+        """Настройка оптимизатора - обучаем только размороженные параметры"""
+
+        # Собираем только те параметры, которые требуют градиентов
+        trainable_params = []
+        frozen_params = []
+
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                trainable_params.append(param)
+            else:
+                frozen_params.append(param)
+
+        # Логируем информацию
+        print("📊 Параметры модели:")
+        print(
+            f"   Всего параметров: {sum(p.numel() for p in self.model.parameters()):,}"
+        )
+        print(f"   Обучаемых параметров: {sum(p.numel() for p in trainable_params):,}")
+        print(f"   Замороженных параметров: {sum(p.numel() for p in frozen_params):,}")
+        print(
+            f"   Обучается: {sum(p.numel() for p in trainable_params) / sum(p.numel() for p in self.model.parameters()) * 100:.1f}% модели"
+        )
+
+        # Создаем оптимизатор только для обучаемых параметров
         optimizer = torch.optim.AdamW(
-            self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
+            trainable_params, lr=self.learning_rate, weight_decay=self.weight_decay
         )
 
         # Learning rate scheduler

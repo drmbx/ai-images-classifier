@@ -1,4 +1,4 @@
 dataset_name: "Hemg/AI-Generated-vs-Real-Images-Datasets"
-output_root: "test_data"
+output_root: "data"
 train_ratio: 0.7
 val_ratio: 0.3
