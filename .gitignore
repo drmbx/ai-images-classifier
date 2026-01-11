@@ -66,4 +66,7 @@ uv.lock
 .ruff_cache/
 
 # ONNX
-models/
+models/onnx/
+
+# Triton
+triton/models/ai_classifier/1/
