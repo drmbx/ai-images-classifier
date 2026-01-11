@@ -1,0 +1,12 @@
+defaults:
+  - model: efficientnet_b0
+  - data: default
+  - training: default
+  - lightning: default
+  - logger: tensorboard
+  - callbacks: default
+  - hydra: default
+  - _self_
+
+experiment_name: ai-image-classifier
+seed: 42
