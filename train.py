@@ -18,6 +18,7 @@ import mlflow
 import numpy as np
 import torch
 from omegaconf import DictConfig, OmegaConf
+from lightning.pytorch.loggers import MLFlowLogger
 
 from src.ai_images_classifier.modules.data_module import AIImageDataModule
 from src.ai_images_classifier.modules.lightning_module import AIImageClassifierModule
@@ -122,7 +123,7 @@ def main(cfg: DictConfig) -> None:
         logger = hydra.utils.instantiate(logger_config)
 
         # Проверяем, является ли logger MLflowLogger
-        if isinstance(logger, L.loggers.MLFlowLogger):
+        if isinstance(logger, MLFlowLogger):
             mlflow_logger = logger
             # Инициализируем MLflow run
             tracking_uri = cfg.logger.get("tracking_uri") or cfg.get("mlflow", {}).get("tracking_uri", "http://127.0.0.1:8080")
