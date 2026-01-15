@@ -13,4 +13,4 @@ seed: 42
 
 # MLflow настройки
 mlflow:
-  tracking_uri: file:./mlruns
+  tracking_uri: sqlite:///./mlruns.db

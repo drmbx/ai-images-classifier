@@ -7,11 +7,12 @@ import os
 import random
 from pathlib import Path
 
-# Отключаем triton и lightning tips на Windows (не поддерживается)
+# Отключаем triton на Windows (не поддерживается)
 if os.name == "nt":  # Windows
     os.environ.setdefault("TORCH_COMPILE_DISABLE", "1")
     os.environ.setdefault("TORCHDYNAMO_DISABLE", "1")
-    os.environ["LIGHTNING_DISABLE_TIPS"] = "1"
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
 import hydra
 import lightning as L
