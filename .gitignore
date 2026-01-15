@@ -70,3 +70,21 @@ models/onnx/
 
 # Triton
 triton/models/ai_classifier/1/
+
+# DVC
+.dvc/
+.dvcignore
+*.dvc
+.dvc/cache/
+
+# MLflow
+mlruns/
+
+# Plots (опционально, можно коммитить)
+# plots/
+
+# DVC (удалено, но оставляем в gitignore на случай если кто-то использует)
+.dvc/
+.dvcignore
+*.dvc
+.dvc/cache/

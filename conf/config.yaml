@@ -3,10 +3,14 @@ defaults:
   - data: default
   - training: default
   - lightning: default
-  - logger: tensorboard
+  - logger: mlflow
   - callbacks: default
   - hydra: default
   - _self_
 
 experiment_name: ai-image-classifier
 seed: 42
+
+# MLflow настройки
+mlflow:
+  tracking_uri: http://127.0.0.1:8080

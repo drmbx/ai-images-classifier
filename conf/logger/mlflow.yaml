@@ -1,0 +1,7 @@
+_target_: pytorch_lightning.loggers.MLFlowLogger
+experiment_name: ${experiment_name}
+tracking_uri: ${mlflow.tracking_uri}
+log_model: false
+tags:
+  project: ai-images-classifier
+
