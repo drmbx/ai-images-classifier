@@ -88,7 +88,7 @@ class AIImageClassifierModule(L.LightningModule):
         if self.current_epoch == 0 and batch_idx == 0:
             backbone_status = 0.0 if self.model.freeze_backbone else 1.0
             # Используем self.log() для универсальной совместимости с любым логгером
-            self.log("backbone_status", backbone_status, on_step=False, on_epoch=False)
+            self.log("backbone_status", backbone_status, on_epoch=True)
             if self.model.freeze_backbone:
                 print("🧊 Backbone заморожен - обучается только классификатор")
             else:
