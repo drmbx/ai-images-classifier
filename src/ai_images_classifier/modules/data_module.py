@@ -18,7 +18,7 @@ class AIImageDataModule(L.LightningDataModule):
         self,
         data_dir: str = "data",
         batch_size: int = 32,
-        num_workers: int = 4,
+        num_workers: int = 2,
         image_size: int = 224,
         train_split: float = 0.8,
         val_split: float = 0.1,

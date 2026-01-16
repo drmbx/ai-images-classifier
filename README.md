@@ -14,6 +14,7 @@
 
 - **PyTorch Lightning** - удобный фреймворк для обучения моделей
 - **Hydra** - управление конфигурацией экспериментов
+- **MLflow** - отслеживание экспериментов и логирование метрик
 - **TensorBoard** - визуализация метрик и логирование
 - **Ruff** - быстрый линтер и форматтер для Python
 - **UV** - быстрый менеджер пакетов для Python
@@ -46,7 +47,7 @@ ai-images-classifier/
 
 ## Установка
 
-### Вариант 1: Использование UV (рекомендуется)
+### Вариант 1: Использование UV (локальная установка)
 
 1. Установите UV (если еще не установлен):
 ```bash
@@ -81,6 +82,8 @@ pip install ruff
 
 ### Подготовка данных
 
+#### Ручная подготовка
+
 Подготовьте данные в следующей структуре:
 ```
 data/
@@ -97,7 +100,55 @@ data/
 
 Если папки `val` и `test` отсутствуют, данные будут автоматически разделены на train/val/test.
 
+#### Загрузка данных из Hugging Face
+
+Для загрузки данных из Hugging Face используйте:
+```bash
+python -m src.ai_images_classifier.utils.download_data
+```
+
 ## Использование
+
+### MLflow
+
+Проект использует MLflow для отслеживания экспериментов. По умолчанию используется MLflow logger.
+
+#### Настройка MLflow
+
+MLflow настраивается через конфигурацию `conf/logger/mlflow.yaml`:
+```yaml
+_target_: pytorch_lightning.loggers.MLFlowLogger
+experiment_name: ${experiment_name}
+tracking_uri: http://127.0.0.1:8080
+log_model: false
+```
+
+#### Запуск MLflow сервера
+
+Перед обучением убедитесь, что MLflow сервер запущен:
+```bash
+mlflow ui --backend-store-uri sqlite:///mlruns.db --port 8080
+```
+
+Или используйте удаленный tracking server (укажите его адрес в конфиге).
+
+#### Что логируется в MLflow
+
+- **Гиперпараметры**: все параметры модели, обучения и данных
+- **Метрики**: train_loss, val_loss, train_acc, val_acc, val_f1, val_precision, val_recall
+- **Git commit ID**: автоматически определяется и логируется
+- **Графики**: графики loss, accuracy и F1-score сохраняются в `plots/` и логируются в MLflow
+
+#### Переключение между логгерами
+
+Используйте Hydra для выбора логгера:
+```bash
+# MLflow (по умолчанию)
+python train.py logger=mlflow
+
+# TensorBoard
+python train.py logger=tensorboard
+```
 
 ### Обучение модели с Hydra
 
@@ -161,6 +212,77 @@ python predict.py \
     --device cuda
 ```
 
+## Infer
+
+### Использование обученной модели
+
+После обучения модели вы можете использовать её для предсказаний:
+
+```bash
+python predict.py \
+    --model_path checkpoints/best-model-epoch=XX-val_loss=X.XX.ckpt \
+    --image_path path/to/image.jpg \
+    --device cuda
+```
+
+### Использование Triton Inference Server
+
+Проект поддерживает развертывание через Triton Inference Server.
+
+#### Подготовка модели для Triton
+
+1. Экспортируйте модель в ONNX:
+```bash
+python export_to_onnx.py \
+    --model_path checkpoints/best-model.ckpt \
+    --copy_to_triton
+```
+
+2. Или подготовьте конфигурацию Triton вручную:
+```bash
+python prepare_triton.py --model_path checkpoints/best-model.ckpt
+```
+
+#### Запуск Triton Inference Server
+
+```bash
+# Используйте готовый скрипт
+bash start_triton.sh
+```
+
+#### Использование Triton клиента
+
+```bash
+python triton_predict.py \
+    --image_path path/to/image.jpg \
+    --model_name ai_classifier \
+    --url localhost:8000
+```
+
+## Production preparation
+
+### Экспорт в ONNX
+
+Экспорт модели в ONNX формат для использования в продакшене:
+
+```bash
+python export_to_onnx.py \
+    --model_path checkpoints/best-model-epoch=XX-val_loss=X.XX.ckpt \
+    --output_dir models/onnx \
+    --image_size 224
+```
+
+Опции:
+- `--model_path`: Путь к checkpoint модели
+- `--output_dir`: Директория для сохранения ONNX модели
+- `--image_size`: Размер входного изображения (по умолчанию 224)
+- `--opset`: Версия ONNX opset (по умолчанию 18)
+- `--copy_to_triton`: Скопировать модель в Triton директорию
+
+### Использование Triton Inference Server
+
+Проект поддерживает развертывание через Triton Inference Server. Подробности в разделе [Infer](#infer).
+
 ## Конфигурация
 
 Все параметры настраиваются через файлы в директории `conf/`:
@@ -199,6 +321,7 @@ python train.py model=custom
 
 - ✅ PyTorch Lightning для удобного процесса обучения
 - ✅ **Hydra** для гибкого управления конфигурацией
+- ✅ **MLflow** для отслеживания экспериментов и логирования метрик
 - ✅ **TensorBoard** для визуализации метрик
 - ✅ Автоматическое разделение данных на train/val/test
 - ✅ Data augmentation для улучшения обобщения
@@ -207,6 +330,8 @@ python train.py model=custom
 - ✅ Mixed precision training (16-bit)
 - ✅ Метрики: Accuracy, Precision, Recall, F1-Score
 - ✅ Hyperparameter sweeps через Hydra
+- ✅ Автоматическое логирование git commit ID
+- ✅ Сохранение графиков метрик в `plots/`
 - ✅ **Ruff** для линтинга и форматирования кода
 - ✅ **UV** для быстрого управления зависимостями
 
@@ -216,13 +341,43 @@ python train.py model=custom
 - **checkpoints/**: Сохраненные модели (лучшие 3 + последняя)
 - **outputs/**: Результаты Hydra (конфигурации и логи)
 - **logs/**: TensorBoard логи для визуализации
+- **plots/**: Графики метрик (loss, accuracy, F1-score)
+- **MLflow**: Эксперименты логируются в MLflow (по умолчанию http://127.0.0.1:8080)
 
 ### Просмотр результатов
+
+#### MLflow UI
+
+Запустите MLflow сервер для просмотра экспериментов:
+```bash
+mlflow ui --backend-store-uri sqlite:///mlruns.db --port 8080
+```
+
+Или если сервер уже запущен:
+```bash
+# Откройте в браузере
+http://127.0.0.1:8080
+```
+
+В MLflow вы можете:
+- Просматривать метрики и гиперпараметры
+- Сравнивать эксперименты
+- Просматривать графики метрик
+- Видеть git commit id для каждого эксперимента
+
+#### TensorBoard
 
 Запустите TensorBoard для просмотра метрик:
 ```bash
 tensorboard --logdir logs
 ```
+
+#### Графики
+
+Графики метрик сохраняются в папке `plots/`:
+- `{experiment_name}_loss.png` - график loss
+- `{experiment_name}_accuracy.png` - график accuracy
+- `{experiment_name}_f1_score.png` - график F1, Precision, Recall
 
 ## Полезные команды Hydra
 

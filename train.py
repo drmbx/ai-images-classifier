@@ -3,16 +3,30 @@
 С использованием Hydra для конфигурации
 """
 
+import os
+import sys
 import random
+from pathlib import Path
+
+# Отключаем triton на Windows (не поддерживается)
+if os.name == "nt":  # Windows
+    os.environ.setdefault("TORCH_COMPILE_DISABLE", "1")
+    os.environ.setdefault("TORCHDYNAMO_DISABLE", "1")
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
 import hydra
 import lightning as L
+import mlflow
 import numpy as np
 import torch
 from omegaconf import DictConfig, OmegaConf
+from lightning.pytorch.loggers import MLFlowLogger
 
 from src.ai_images_classifier.modules.data_module import AIImageDataModule
 from src.ai_images_classifier.modules.lightning_module import AIImageClassifierModule
+from src.ai_images_classifier.utils.metrics_collector import MetricsCollectorCallback
+from src.ai_images_classifier.utils.mlflow_utils import log_hyperparameters_to_mlflow
 
 
 def set_seed(seed: int):
@@ -97,14 +111,35 @@ def main(cfg: DictConfig) -> None:
         lr_monitor = hydra.utils.instantiate(cfg.callbacks.lr_monitor)
         callbacks.append(lr_monitor)
 
+    # MetricsCollector для сбора метрик и создания графиков
+    metrics_collector = MetricsCollectorCallback(plots_dir=Path("plots"))
+    callbacks.append(metrics_collector)
+
     # Создание logger из конфигурации
     logger = None
+    mlflow_logger = None
     if "logger" in cfg and cfg.logger is not None:
         logger_config = cfg.logger.copy()
         # Заменяем переменные в конфигурации logger
         if "name" in logger_config:
             logger_config.name = cfg.experiment_name
         logger = hydra.utils.instantiate(logger_config)
+
+        # Проверяем, является ли logger MLflowLogger
+        if isinstance(logger, MLFlowLogger):
+            mlflow_logger = logger
+            # Инициализируем MLflow run
+            tracking_uri = cfg.logger.get("tracking_uri") or cfg.get("mlflow", {}).get("tracking_uri", "http://127.0.0.1:8080")
+            mlflow.set_tracking_uri(tracking_uri)
+            mlflow.set_experiment(cfg.logger.experiment_name)
+            try:
+                mlflow.start_run()
+                # Логируем гиперпараметры и git commit id
+                log_hyperparameters_to_mlflow(cfg)
+            except Exception as e:
+                print(f"⚠️  Не удалось подключиться к MLflow серверу: {e}")
+                print("   Обучение продолжится без логирования в MLflow")
+                mlflow_logger = None
 
     # Trainer
     trainer = L.Trainer(
@@ -137,6 +172,25 @@ def main(cfg: DictConfig) -> None:
         checkpoint_callback, "best_model_path"
     ):
         print(f"\nЛучшая модель сохранена в: {checkpoint_callback.best_model_path}")
+
+    # Логируем финальные метрики в MLflow
+    if mlflow_logger is not None:
+        try:
+            # Логируем финальные метрики из callback_metrics
+            if hasattr(trainer, "callback_metrics"):
+                for metric_name, metric_value in trainer.callback_metrics.items():
+                    if isinstance(metric_value, torch.Tensor):
+                        mlflow.log_metric(metric_name, metric_value.item())
+                    elif isinstance(metric_value, (int, float)):
+                        mlflow.log_metric(metric_name, metric_value)
+
+            print("✅ Метрики залогированы в MLflow")
+        except Exception as e:
+            print(f"⚠️  Ошибка при логировании в MLflow: {e}")
+
+    # Закрываем MLflow run
+    if mlflow_logger is not None:
+        mlflow.end_run()
 
 
 if __name__ == "__main__":
